@@ -1,0 +1,5 @@
+NC9	Chailly – Boissy-le-Châtel	no TRAIN or TRAM-TRAIN row in transcodification.csv (bus only)
+ND0	Chauffry	no TRAIN or TRAM-TRAIN row in transcodification.csv (bus only)
+SGM	Saint-Germain-en-Laye Grande Ceinture	no TRAIN or TRAM-TRAIN row in transcodification.csv (bus only)
+NC8	Saint-Rémy-la-Vanne	no TRAIN or TRAM-TRAIN row in transcodification.csv (bus only)
+SSJ	Saint-Siméon	no TRAIN or TRAM-TRAIN row in transcodification.csv (bus only)

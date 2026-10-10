@@ -22,9 +22,10 @@ Hosted on GitHub Pages (public repo). No backend, no keys, no framework, no npm 
 monrer resolves a code like this (`install/func-find-station-by-key.sql`): code → `pa_id` → transco row with `zde_mode='TRAIN'` → `zdlr_id` = IDFM `ZdAId`.
 
 ## Decisions
-- Match order per `pa_id`: SNCF trigramme == code → SNCF `codes_uic` ∋ transco UIC8 → IDFM rail arrêts of the ZdA (mean).
-- One entry per `pa_id`. Kept code = the one matching an SNCF trigramme, else first in monrer order; others in `aliases`.
-- `stations.json` schema: `[{code, name, lat, lon, aliases, source}]`, `source` ∈ `sncf_trigramme | sncf_uic | idfm`. WGS84, 6 decimals.
+- Match order per `pa_id`: SNCF `codes_uic` ∋ transco UIC8 → IDFM arrêts of the transco ZdA (mean; TRAIN rows → `rail` arrêts, else TRAM-TRAIN rows → `tram` arrêts).
+- Do not match on trigramme alone. monrer codes are not SNCF trigrammes: 8 codes collide with another station (e.g. monrer `ANY` = Andrésy, SNCF `ANY` = Annecy; `MVC`/`MLV` swapped). Trigramme only breaks ties when one `pa_id` has several UIC hits.
+- One entry per `pa_id`. Kept code = the SNCF trigramme if it is one of the group's codes, else first in monrer order; others in `aliases`.
+- `stations.json` schema: `[{code, name, lat, lon, aliases, source}]`, `source` ∈ `sncf_uic | idfm`. WGS84, 6 decimals. Licence ODbL.
 - GeoJSON coordinates are `[lon, lat]`; the JSON exports used here are `{lon, lat}` objects.
 - Downloads are cached in `.cache/`; the script reuses the cache unless `--refresh`.
 
