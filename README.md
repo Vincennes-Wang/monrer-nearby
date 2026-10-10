@@ -2,6 +2,12 @@
 
 Opens [monrer.fr](https://monrer.fr/) on the station nearest to you. The page asks for your position, lists the 3 nearest stations, and redirects to the nearest one after 2 seconds. It does not redirect if the position accuracy is worse than 500 m or the nearest station is more than 5 km away; you pick a station instead. Your position stays in the browser; nothing is sent anywhere.
 
+## Utilisation sur iPhone
+
+1. Réglages → Confidentialité et sécurité → Service de localisation : activé. Puis « Sites web Safari » : « Lorsque l’app est active ».
+2. Dans Safari, sur la page : menu « aA » → Réglages du site web → Position : « Autoriser ».
+3. Partager → « Sur l’écran d’accueil ». L’icône relance la localisation et la redirection à chaque ouverture.
+
 ## Rebuild the station data
 
 ```sh
@@ -14,7 +20,7 @@ python3 -m venv .venv
 ## Tests
 
 ```sh
-node --test tests/
+node --test tests/*.test.mjs
 node scripts/browser_check.mjs   # headless Chrome; requests to monrer.fr are blocked
 ```
 

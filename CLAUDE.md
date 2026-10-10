@@ -49,7 +49,7 @@ Hosted on GitHub Pages (public repo). No backend, no keys, no framework, no npm 
 - `data/stations.json` — generated, committed. Licence ODbL (derived from SNCF data).
 - `data/unmatched.txt` — monrer codes without coordinates (should be empty).
 - `scripts/build_stations.py` — builds the two files above. Python 3.9+, `requests` in `.venv`.
-- `tests/geo.test.mjs` — `node --test tests/`. Loads `<script id="geo">` from index.html via `node:vm`.
+- `tests/geo.test.mjs` — `node --test tests/*.test.mjs` (the directory form fails on Node 22). Loads `<script id="geo">` from index.html via `node:vm`.
 
 ## Data sources
 | Source | Used for | Key fields |
