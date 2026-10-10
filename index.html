@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Gare la plus proche – monrer.fr</title>
+<style>
+  :root { color-scheme: light dark; --fg: #1a1a1a; --bg: #fafafa; --muted: #666; --accent: #0b5cad; --card: #fff; --line: #ddd; }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg: #eee; --bg: #141414; --muted: #999; --accent: #6eb2ff; --card: #1f1f1f; --line: #333; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 17px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--fg); background: var(--bg); }
+  main { max-width: 32rem; margin: 0 auto; padding: 1.5rem 1rem; min-height: calc(100vh - 6rem); }
+  h1 { font-size: 1.25rem; margin: 0 0 1rem; }
+  #status { margin: 0 0 1rem; }
+  #accuracy { color: var(--muted); margin: -0.5rem 0 1rem; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li a { display: flex; justify-content: space-between; gap: 1rem; padding: 0.85rem 1rem; margin-bottom: 0.5rem;
+         background: var(--card); border: 1px solid var(--line); border-radius: 0.5rem; color: var(--accent); text-decoration: none; }
+  li a:active { opacity: 0.7; }
+  .dist, .code { color: var(--muted); white-space: nowrap; }
+  button, input { font: inherit; }
+  button { padding: 0.6rem 1.2rem; border-radius: 0.5rem; border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  input { width: 100%; padding: 0.7rem 0.9rem; margin-bottom: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  footer { max-width: 32rem; margin: 0 auto; padding: 1rem; font-size: 0.8rem; color: var(--muted); }
+  footer a { color: inherit; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Gare la plus proche</h1>
+  <p id="status">Recherche de votre position…</p>
+  <p id="accuracy" hidden></p>
+  <ul id="nearest"></ul>
+  <p id="cancel-wrap" hidden><button id="cancel" type="button">Annuler</button></p>
+  <section id="search" hidden>
+    <input id="query" type="search" placeholder="Nom ou code de la gare" autocomplete="off" aria-label="Rechercher une gare">
+    <ul id="all"></ul>
+  </section>
+</main>
+<footer>
+  Votre position reste dans votre navigateur.<br>
+  Données : <a href="https://ressources.data.sncf.com/explore/dataset/gares-de-voyageurs/">SNCF Gares de voyageurs</a>
+  (<a href="https://opendatacommons.org/licenses/odbl/1-0/">ODbL</a>),
+  <a href="https://data.iledefrance-mobilites.fr/explore/dataset/arrets/">Île-de-France Mobilités</a>
+  (<a href="https://www.etalab.gouv.fr/wp-content/uploads/2017/04/ETALAB-Licence-Ouverte-v2.0.pdf">Licence Ouverte v2.0</a>).
+  Horaires : <a href="https://monrer.fr/">monrer.fr</a> par x0r.
+  Ce site n’est pas affilié à monrer.fr.
+  <a href="https://github.com/Vincennes-Wang/monrer-nearby">Code source</a>.
+</footer>
+
+<script id="geo">
+const EARTH_RADIUS_M = 6371008.8;
+const MAX_ACCURACY_M = 500;
+const MAX_DISTANCE_M = 5000;
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const rad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * rad;
+  const dLon = (lon2 - lon1) * rad;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLon / 2) ** 2;
+  return 2 * EARTH_RADIUS_M * Math.asin(Math.sqrt(a));
+}
+
+function nearest(stations, lat, lon, n = 3) {
+  return stations
+    .map(station => ({ station, distance: haversine(lat, lon, station.lat, station.lon) }))
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, n);
+}
+
+function shouldRedirect(accuracy, distance) {
+  return accuracy <= MAX_ACCURACY_M && distance <= MAX_DISTANCE_M;
+}
+
+function formatDistance(m) {
+  if (m < 995) return `~${Math.round(m / 10) * 10} m`;
+  return `~${(m / 1000).toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km`;
+}
+</script>
+
+<script>
+const REDIRECT_DELAY_MS = 2000;
+const $ = id => document.getElementById(id);
+let stations = [];
+let timer = null;
+
+const monrerUrl = code => `https://monrer.fr/?s=${encodeURIComponent(code)}`;
+const fold = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+function go(code) {
+  location.replace(monrerUrl(code));
+}
+
+function stationItem(station, right) {
+  const li = document.createElement("li");
+  const a = document.createElement("a");
+  a.href = monrerUrl(station.code);
+  a.addEventListener("click", e => { e.preventDefault(); stopCountdown(); go(station.code); });
+  const name = document.createElement("span");
+  name.textContent = station.name;
+  const extra = document.createElement("span");
+  extra.className = right.className;
+  extra.textContent = right.text;
+  a.append(name, extra);
+  li.append(a);
+  return li;
+}
+
+function stopCountdown() {
+  clearTimeout(timer);
+  timer = null;
+  $("cancel-wrap").hidden = true;
+}
+
+function showNearest(pos) {
+  const { latitude, longitude, accuracy } = pos.coords;
+  const list = nearest(stations, latitude, longitude, 3);
+  $("nearest").replaceChildren(...list.map(r => stationItem(r.station, { className: "dist", text: formatDistance(r.distance) })));
+  const first = list[0];
+  if (shouldRedirect(accuracy, first.distance)) {
+    $("status").textContent = `Ouverture de ${first.station.name}…`;
+    $("cancel-wrap").hidden = false;
+    timer = setTimeout(() => go(first.station.code), REDIRECT_DELAY_MS);
+  } else if (accuracy > MAX_ACCURACY_M) {
+    $("status").textContent = "Position imprécise. Choisissez votre gare :";
+    $("accuracy").textContent = `Précision : ${formatDistance(accuracy)}`;
+    $("accuracy").hidden = false;
+  } else {
+    $("status").textContent = "Aucune gare à moins de 5 km. Gares les plus proches :";
+  }
+}
+
+function showSearch(message) {
+  stopCountdown();
+  $("status").textContent = message;
+  $("search").hidden = false;
+  const render = () => {
+    const q = fold($("query").value.trim());
+    const hits = stations.filter(s => !q || fold(s.name).includes(q) || [s.code, ...s.aliases].some(c => fold(c).includes(q)));
+    $("all").replaceChildren(...hits.map(s => stationItem(s, { className: "code", text: s.code })));
+  };
+  $("query").addEventListener("input", render);
+  render();
+}
+
+function geoError(err) {
+  const messages = {
+    1: "Localisation refusée. Choisissez votre gare :",
+    2: "Position indisponible. Choisissez votre gare :",
+    3: "Délai de localisation dépassé. Choisissez votre gare :",
+  };
+  showSearch(messages[err.code] || "Localisation impossible. Choisissez votre gare :");
+}
+
+$("cancel").addEventListener("click", () => {
+  stopCountdown();
+  $("status").textContent = "Redirection annulée. Choisissez votre gare :";
+});
+
+fetch("data/stations.json")
+  .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+  .then(data => {
+    stations = data;
+    if (!("geolocation" in navigator)) return showSearch("Localisation non disponible. Choisissez votre gare :");
+    navigator.geolocation.getCurrentPosition(showNearest, geoError,
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+  })
+  .catch(() => {
+    $("status").textContent = "Impossible de charger la liste des gares.";
+    const p = document.createElement("p");
+    const a = document.createElement("a");
+    a.href = "https://monrer.fr/";
+    a.textContent = "Ouvrir monrer.fr";
+    p.append(a);
+    $("status").after(p);
+  });
+</script>
+</body>
+</html>
