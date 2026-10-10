@@ -30,8 +30,8 @@ SOURCES = {
     "transcodification.csv": RERWEB + "transcodification.csv",
     "sncf_gares.json": "https://ressources.data.sncf.com/api/explore/v2.1/catalog/datasets/"
     "gares-de-voyageurs/exports/json",
-    "idfm_arrets_rail_tram.json": "https://data.iledefrance-mobilites.fr/api/explore/v2.1/catalog/datasets/"
-    "arrets/exports/json?where=arrtype%20in%20(%22rail%22,%22tram%22)&select=arrid,arrname,arrtype,zdaid,arrgeopoint",
+    "idfm_arrets_rail.json": "https://data.iledefrance-mobilites.fr/api/explore/v2.1/catalog/datasets/"
+    "arrets/exports/json?where=arrtype%3D%22rail%22&select=arrid,arrname,zdaid,arrgeopoint",
 }
 
 
@@ -70,12 +70,12 @@ def main():
 
     code_pa = {r["code"]: r["pa_id"] for r in csv.DictReader(io.StringIO(fetch("station_codes.csv", args.refresh)))}
     pa_uic = defaultdict(set)
-    pa_zda = defaultdict(lambda: defaultdict(set))  # pa_id -> ZDE Mode -> ZdA ids
+    pa_zda = defaultdict(set)  # ZdA ids of TRAIN rows, as used by monrer's find_station_by_key
     for r in csv.DictReader(io.StringIO(fetch("transcodification.csv", args.refresh)), delimiter=";"):
         if r["UIC8"]:
             pa_uic[r["PA ID"]].add(r["UIC8"])
-        if r["ZDE Mode"] in ("TRAIN", "TRAM-TRAIN") and r["__ZDLr_ID"]:
-            pa_zda[r["PA ID"]][r["ZDE Mode"]].add(r["__ZDLr_ID"])
+        if r["ZDE Mode"] == "TRAIN" and r["__ZDLr_ID"]:
+            pa_zda[r["PA ID"]].add(r["__ZDLr_ID"])
 
     sncf = json.loads(fetch("sncf_gares.json", args.refresh))
     sncf_by_tri = {g["libellecourt"]: g for g in sncf if g["libellecourt"] and g["position_geographique"]}
@@ -87,25 +87,17 @@ def main():
                     sncf_by_uic[u] = g
 
     zda_points = defaultdict(list)
-    for a in json.loads(fetch("idfm_arrets_rail_tram.json", args.refresh)):
+    for a in json.loads(fetch("idfm_arrets_rail.json", args.refresh)):
         if a["arrgeopoint"]:
-            zda_points[(a["zdaid"], a["arrtype"])].append((a["arrgeopoint"]["lat"], a["arrgeopoint"]["lon"]))
+            zda_points[a["zdaid"]].append((a["arrgeopoint"]["lat"], a["arrgeopoint"]["lon"]))
 
     def idfm_coord(pa):
-        """Mean of IDFM arrêts in the ZdAs monrer uses for this pa_id.
-
-        TRAIN rows (rail arrêts) first, as in monrer's find_station_by_key;
-        TRAM-TRAIN rows (tram arrêts, line T13) only if there is no TRAIN row.
-        """
-        modes = pa_zda.get(pa, {})
-        for mode, arrtype in (("TRAIN", "rail"), ("TRAM-TRAIN", "tram")):
-            if mode in modes:
-                zdas = sorted(modes[mode])
-                pts = [p for z in zdas for p in zda_points.get((z, arrtype), [])]
-                if not pts:
-                    return None, f"{mode} ZdA {zdas} has no {arrtype} arrêt in IDFM arrets"
-                return (statistics.mean(p[0] for p in pts), statistics.mean(p[1] for p in pts)), None
-        return None, "no TRAIN or TRAM-TRAIN row in transcodification.csv (bus only)"
+        """Mean of IDFM rail arrêts in the ZdAs monrer uses for this pa_id."""
+        zdas = sorted(pa_zda[pa])
+        pts = [p for z in zdas for p in zda_points.get(z, [])]
+        if not pts:
+            return None, f"ZdA {zdas} has no rail arrêt in IDFM arrets"
+        return (statistics.mean(p[0] for p in pts), statistics.mean(p[1] for p in pts)), None
 
     # group codes by pa_id, keeping monrer order
     groups = {}
@@ -119,6 +111,12 @@ def main():
 
     stations, unmatched, ambiguous, comparisons, not_compared, tri_mismatch = [], [], [], [], [], []
     for pa, members in groups.items():
+        # monrer's find_station_by_key only joins TRAIN rows: without one,
+        # monrer.fr/?s=<code> returns 404 (confirmed live for all 8 such codes, 2026-10-10).
+        if pa not in pa_zda:
+            for code, name in members:
+                unmatched.append((code, name, "monrer.fr returns 404: no TRAIN row in transcodification.csv"))
+            continue
         # SNCF match by UIC (monrer's own mapping). The trigramme alone is not
         # reliable: e.g. monrer ANY = Andrésy, SNCF ANY = Annecy. It only breaks
         # ties when one pa_id has several UIC hits (e.g. Massy - Palaiseau / Massy TGV).

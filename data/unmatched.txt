@@ -1,5 +1,8 @@
-NC9	Chailly – Boissy-le-Châtel	no TRAIN or TRAM-TRAIN row in transcodification.csv (bus only)
-ND0	Chauffry	no TRAIN or TRAM-TRAIN row in transcodification.csv (bus only)
-SGM	Saint-Germain-en-Laye Grande Ceinture	no TRAIN or TRAM-TRAIN row in transcodification.csv (bus only)
-NC8	Saint-Rémy-la-Vanne	no TRAIN or TRAM-TRAIN row in transcodification.csv (bus only)
-SSJ	Saint-Siméon	no TRAIN or TRAM-TRAIN row in transcodification.csv (bus only)
+NC9	Chailly – Boissy-le-Châtel	monrer.fr returns 404: no TRAIN row in transcodification.csv
+ND0	Chauffry	monrer.fr returns 404: no TRAIN row in transcodification.csv
+MPJ	Mareil-Marly	monrer.fr returns 404: no TRAIN row in transcodification.csv
+NIO	Noisy-le-Roi	monrer.fr returns 404: no TRAIN row in transcodification.csv
+BEL	Saint-Germain-en-Laye Bel Air – Fourqueux	monrer.fr returns 404: no TRAIN row in transcodification.csv
+SGM	Saint-Germain-en-Laye Grande Ceinture	monrer.fr returns 404: no TRAIN row in transcodification.csv
+NC8	Saint-Rémy-la-Vanne	monrer.fr returns 404: no TRAIN row in transcodification.csv
+SSJ	Saint-Siméon	monrer.fr returns 404: no TRAIN row in transcodification.csv

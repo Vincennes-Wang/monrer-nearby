@@ -1,3 +1,44 @@
+## 协作规则
+- 先给计划，用户确认后再写代码。
+- 实际检查网页、API、文件、模型输出，不凭猜测写代码。
+- 每个阶段结束时运行验证，报告结果。
+- 小步提交。不提交密钥、`.env`、`legacy/`、`private/`、模型文件和个人数据。
+- 每次工作结束前：按下面的格式更新 `PROGRESS.md`，提交并推送，然后运行 `git status -sb` 确认没有未推送的提交。
+
+## 交接清单
+以下情况，回复末尾必须输出交接清单：
+- 每次工作结束，推送完成后。
+- 需要用户在 GitHub 网页、手机、账号或系统设置里操作时（例如开启 Pages、添加 Secrets、真机测试、授权）。
+- 遇到无法自己解决的报错，或需要用户做决策时。
+
+格式：
+
+### 交接清单
+- 推送状态：<已推送，最新提交 xxxxxxx / 未推送，原因>
+- 需要你做：
+  1. <具体操作，写明在哪里点什么；没有就写“无”>
+- 发给 Claude.ai：
+  > 看看进度：<仓库地址>。<一句话说明本次变化，或需要诊断的问题>
+
+## PROGRESS.md 固定格式
+```markdown
+# PROGRESS
+- 状态：<进行中 / 已完成 / 暂停>
+- 当前阶段：<阶段编号和名称>
+- 累计用时：<小时>
+- 线上地址：<GitHub Pages 链接，没有就留空>
+
+## 最近一次工作（<日期>）
+- 完成：
+- 验证结果：<运行了什么检查，结果如何>
+
+## 下次从这里继续
+1.
+
+## 未解决问题
+-
+```
+
 # monrer-nearby
 
 Static page: browser geolocation → nearest station → `location.replace("https://monrer.fr/?s=<code>")`.
@@ -22,7 +63,8 @@ Hosted on GitHub Pages (public repo). No backend, no keys, no framework, no npm 
 monrer resolves a code like this (`install/func-find-station-by-key.sql`): code → `pa_id` → transco row with `zde_mode='TRAIN'` → `zdlr_id` = IDFM `ZdAId`.
 
 ## Decisions
-- Match order per `pa_id`: SNCF `codes_uic` ∋ transco UIC8 → IDFM arrêts of the transco ZdA (mean; TRAIN rows → `rail` arrêts, else TRAM-TRAIN rows → `tram` arrêts).
+- Exclude a `pa_id` without a transco row where `ZDE Mode = TRAIN`: monrer's `find_station_by_key` needs one, so `monrer.fr/?s=<code>` returns 404. User confirmed 404 live for all 8 such codes (2026-10-10). They go to `unmatched.txt`.
+- Match order per `pa_id`: SNCF `codes_uic` ∋ transco UIC8 → IDFM `rail` arrêts of the TRAIN-row ZdAs (mean).
 - Do not match on trigramme alone. monrer codes are not SNCF trigrammes: 8 codes collide with another station (e.g. monrer `ANY` = Andrésy, SNCF `ANY` = Annecy; `MVC`/`MLV` swapped). Trigramme only breaks ties when one `pa_id` has several UIC hits.
 - One entry per `pa_id`. Kept code = the SNCF trigramme if it is one of the group's codes, else first in monrer order; others in `aliases`.
 - `stations.json` schema: `[{code, name, lat, lon, aliases, source}]`, `source` ∈ `sncf_uic | idfm`. WGS84, 6 decimals. Licence ODbL.
