@@ -1,6 +1,6 @@
 # monrer-nearby
 
-Opens [monrer.fr](https://monrer.fr/) on the station nearest to you. The page asks for your position, lists the 3 nearest stations, and redirects to the nearest one after 2 seconds. Your position stays in the browser; nothing is sent anywhere.
+Opens [monrer.fr](https://monrer.fr/) on the station nearest to you. The page asks for your position, lists the 3 nearest stations, and redirects to the nearest one after 2 seconds. It does not redirect if the position accuracy is worse than 500 m or the nearest station is more than 5 km away; you pick a station instead. Your position stays in the browser; nothing is sent anywhere.
 
 ## Rebuild the station data
 
@@ -15,6 +15,7 @@ python3 -m venv .venv
 
 ```sh
 node --test tests/
+node scripts/browser_check.mjs   # headless Chrome; requests to monrer.fr are blocked
 ```
 
 ## Data sources and licences
