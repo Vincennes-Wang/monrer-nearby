@@ -6,10 +6,12 @@
 
 ## 最近一次工作（2026-10-10）
 - 完成：
+  - CLAUDE.md 开头加入 3 行 `@~/vibe-playbook/...` 引用（用户修改，Claude 验证后提交）。
   - 用户真机测试（结果见下）。
   - README 加入“Utilisation sur iPhone”：开启 Safari 网站定位、本站设为“允许”、添加到主屏幕。
   - 测试命令改为 `node --test tests/*.test.mjs`（目录形式 `node --test tests/` 在 Node 22 上失败）。README、CLAUDE.md、本文件同步修改。
 - 验证结果：
+  - CLAUDE.md 引用的 3 个文件在 `~/vibe-playbook/` 中存在，本次会话已成功加载其内容。
   - `node --test tests/*.test.mjs`：5/5 通过（Node v26.10.0）。
   - 用户真机测试：
     - iPhone Safari / Chrome：最初定位被直接拒绝、没有弹窗，原因是 iOS“定位服务”设置。开启后弹窗出现一次，之后不再询问，定位和跳转正常。
